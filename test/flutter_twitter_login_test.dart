@@ -33,9 +33,9 @@ void main() {
     };
 
     final List<MethodCall> log = [];
-    TwitterLogin sut;
+    late TwitterLogin sut;
 
-    void setMethodCallResponse(Map<String, dynamic> response) {
+    void setMethodCallResponse(Map<String, dynamic>? response) {
       channel.setMockMethodCallHandler((MethodCall methodCall) {
         log.add(methodCall);
         return new Future.value(response);
@@ -58,9 +58,7 @@ void main() {
       log.clear();
     });
 
-    test('can not call constructor with null or empty key or secret', () {
-      expect(() => new TwitterLogin(consumerKey: null, consumerSecret: null),
-          throwsA(anything));
+    test('can not call constructor with empty key or secret', () {
       expect(() => new TwitterLogin(consumerKey: '', consumerSecret: ''),
           throwsA(anything));
     });
@@ -95,7 +93,7 @@ void main() {
     test('get currentSession - handles null response gracefully', () async {
       setMethodCallResponse(null);
 
-      final TwitterSession session = await sut.currentSession;
+      final TwitterSession? session = await sut.currentSession;
       expect(session, isNull);
       expect(log, [
         isMethodCall(
@@ -108,14 +106,17 @@ void main() {
     test('get currentSession - parses session correctly', () async {
       setMethodCallResponse(kSessionMap);
 
-      final TwitterSession session = await sut.currentSession;
-      expectSessionParsedCorrectly(session);
-      expect(log, [
-        isMethodCall(
-          'getCurrentSession',
-          arguments: kTokenAndSecretArguments,
-        ),
-      ]);
+      final TwitterSession? session = await sut.currentSession;
+      expect(session, isNotNull);
+      if (session != null) {
+        expectSessionParsedCorrectly(session);
+        expect(log, [
+          isMethodCall(
+            'getCurrentSession',
+            arguments: kTokenAndSecretArguments,
+          ),
+        ]);
+      }
     });
 
     test('authorize - calls the right method', () async {
@@ -137,7 +138,9 @@ void main() {
       final TwitterLoginResult result = await sut.authorize();
 
       expect(result.status, TwitterLoginStatus.loggedIn);
-      expectSessionParsedCorrectly(result.session);
+      final _session = result.session;
+      expect(_session, isNotNull);
+      if (_session != null) expectSessionParsedCorrectly(_session);
     });
 
     test('authorize - cancelled by user', () async {

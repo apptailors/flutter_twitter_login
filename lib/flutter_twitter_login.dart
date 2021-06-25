@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// A Flutter plugin for authenticating users by using the native Twitter
@@ -15,12 +14,10 @@ class TwitterLogin {
   /// apps site at https://apps.twitter.com/, in the "Keys and Access Tokens"
   /// tab.
   TwitterLogin({
-    @required this.consumerKey,
-    @required this.consumerSecret,
-  })  : assert(consumerKey != null && consumerKey.isNotEmpty,
-            'Consumer key may not be null or empty.'),
-        assert(consumerSecret != null && consumerSecret.isNotEmpty,
-            'Consumer secret may not be null or empty.'),
+    required this.consumerKey,
+    required this.consumerSecret,
+  })  : assert(consumerKey.isNotEmpty, 'Consumer key may not be empty.'),
+        assert(consumerSecret.isNotEmpty, 'Consumer secret may not empty.'),
         _keys = {
           'consumerKey': consumerKey,
           'consumerSecret': consumerSecret,
@@ -53,15 +50,15 @@ class TwitterLogin {
   /// ```
   ///
   /// If the user is not logged in, this returns null.
-  Future<TwitterSession> get currentSession async {
-    final Map<dynamic, dynamic> session =
+  Future<TwitterSession?> get currentSession async {
+    final Map<dynamic, dynamic>? session =
         await channel.invokeMethod('getCurrentSession', _keys);
 
     if (session == null) {
       return null;
     }
 
-    return new TwitterSession.fromMap(session.cast<String, dynamic>());
+    return TwitterSession.fromMap(session.cast<String, dynamic>());
   }
 
   /// Logs the user in.
@@ -102,7 +99,7 @@ class TwitterLogin {
   Future<TwitterLoginResult> authorize() async {
     final Map<dynamic, dynamic> result =
         await channel.invokeMethod('authorize', _keys);
-    return new TwitterLoginResult._(result.cast<String, dynamic>());
+    return TwitterLoginResult._(result.cast<String, dynamic>());
   }
 
   /// Logs the currently logged in user out.
@@ -125,11 +122,11 @@ class TwitterLoginResult {
 
   /// Only available when the [status] equals [TwitterLoginStatus.loggedIn],
   /// otherwise null.
-  final TwitterSession session;
+  final TwitterSession? session;
 
   /// Only available when the [status] equals [TwitterLoginStatus.error]
   /// otherwise null.
-  final String errorMessage;
+  final String? errorMessage;
 
   TwitterLoginResult._(Map<String, dynamic> map)
       : status = _parseStatus(map['status'], map['errorMessage']),
@@ -140,15 +137,17 @@ class TwitterLoginResult {
             : null,
         errorMessage = map['errorMessage'];
 
-  static TwitterLoginStatus _parseStatus(String status, String errorMessage) {
+  static TwitterLoginStatus _parseStatus(String? status, String? errorMessage) {
     switch (status) {
       case 'loggedIn':
         return TwitterLoginStatus.loggedIn;
       case 'error':
         // Kind of a hack, but the only way of determining this.
-        if (errorMessage.contains('canceled') ||
-            errorMessage.contains('cancelled')) {
-          return TwitterLoginStatus.cancelledByUser;
+        if (errorMessage != null) {
+          if (errorMessage.contains('canceled') ||
+              errorMessage.contains('cancelled')) {
+            return TwitterLoginStatus.cancelledByUser;
+          }
         }
 
         return TwitterLoginStatus.error;
